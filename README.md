@@ -67,18 +67,25 @@ volumes:
   my-pgdata:
     # driver: local # Default driver
 ```
-```bash Run Docker Compose:docker-compose up -d```
+Run Docker Compose:
+```bash
+docker-compose up -d
+```
 
 This will pull the image if necessary and start the PostgreSQL container in the background. To stop it, use docker-compose down.Connecting to the DatabaseYou can connect using any standard PostgreSQL client, such as
- 
-```bash psql:psql -h localhost -p 5432 -U myuser -d mydb```
+
+```bash
+psql:psql -h localhost -p 5432 -U myuser -d mydb
+```
 
 Enter the password (mysecretpassword in the examples) when prompted.
 Verifying Extensions Once connected, you can verify that the extensions are enabled:
 
 List all installed extensions:
 
-```sql SELECT * FROM pg_extension; ```
+```sql
+SELECT * FROM pg_extension;
+```
 
 You should see postgis and vector listed. 
 ### Data Persistence
