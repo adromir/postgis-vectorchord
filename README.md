@@ -32,26 +32,18 @@ The `postgis` and `vector` (pgvector-rs) extensions are automatically enabled in
 
 You need to provide environment variables for the initial database user and password.
 
-# Pull the image first (optional, docker run will do it if not present)
-# docker pull adromir/postgis-pgvecto-rs:testing
+Pull the image first (optional, docker run will do it if not present)
+docker pull adromir/postgis-pgvecto-rs:testing
 
-```bash
-    docker run -d \
-  --name my-postgres-container \
-  -e POSTGRES_USER=myuser \
-  -e POSTGRES_PASSWORD=mysecretpassword \
-  -e POSTGRES_DB=mydb \
-  -p 5432:5432 \
-  -v my-pgdata:/var/lib/postgresql/data \
-  adromir/postgis-pgvecto-rs:testing ```
-
--d: Run the container in detached mode (in the background).
---name my-postgres-container: Assign a name to the container.
--e POSTGRES_USER=myuser: Sets the initial database username.
--e POSTGRES_PASSWORD=mysecretpassword: Required. Sets the password for the initial user. Use a strong password!
--e POSTGRES_DB=mydb: Sets the name of the initial database (defaults to the value of POSTGRES_USER if not set).
--p 5432:5432: Maps port 5432 on your host machine to port 5432 in the container.
--v my-pgdata:/var/lib/postgresql/data: Crucial for persistence. Mounts a named Docker volume my-pgdata to the PostgreSQL data directory inside the container. Docker creates the volume if it doesn't exist. You can also use a host path like /path/on/host:/var/lib/postgresql/data.
+```docker run -d --name my-postgres-container -e POSTGRES_USER=myuser -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=mydb -p 5432:5432 -v my-pgdata:/var/lib/postgresql/data \adromir/postgis-pgvecto-rs:testing ```
+  
+-d: Run the container in detached mode (in the background).\
+--name my-postgres-container: Assign a name to the container.\
+-e POSTGRES_USER=myuser: Sets the initial database username.\
+-e POSTGRES_PASSWORD=mysecretpassword: Required. Sets the password for the initial user. Use a strong password!\
+-e POSTGRES_DB=mydb: Sets the name of the initial database (defaults to the value of POSTGRES_USER if not set).\
+-p 5432:5432: Maps port 5432 on your host machine to port 5432 in the container.\
+-v my-pgdata:/var/lib/postgresql/data: Crucial for persistence. Mounts a named Docker volume my-pgdata to the PostgreSQL data directory inside the container. Docker creates the volume if it doesn't exist. You can also use a host path like /path/on/host:/var/lib/postgresql/data.\
 adromir/postgis-pgvecto-rs:testing: The pre-built image from Docker Hub.
 
 ### Using docker-composeCreate a docker-compose.yml file in your project directory:
