@@ -2,9 +2,11 @@
 
 ## Overview
 
-* **Postgres 17 from official Postgis Image
-* **Postis 3.5.2 from official Postgis Image
-* **pgvector-rs** extension (v0.4.0, istalled via offical Debian package)
+This document describes how to use a pre-built Docker image based on `postgres:17-alpine`. It includes:
+
+* **PostgreSQL 17** (from the official Alpine-based image)
+* **PostGIS** extension (version determined by Alpine package repository)
+* **pgvector-rs** extension (v0.4.0, built from source)
 
 The pre-built image is available on Docker Hub: **[adromir/postgis-pgvecto-rs](https://hub.docker.com/repository/docker/adromir/postgis-pgvecto-rs/general)** (Tag: `testing`).
 
@@ -12,8 +14,8 @@ The `postgis` and `vector` (pgvector-rs) extensions are automatically enabled in
 
 ## Features
 
-* PostgreSQL 17 on Debian
-* PostGIS 3.5.2 extension included
+* PostgreSQL 17 on Alpine Linux
+* PostGIS extension included
 * pgvector-rs extension v0.4.0 included
 * Automatic enabling of `postgis` and `vector` extensions on initialization
 * Configurable user, password, and database name via environment variables
