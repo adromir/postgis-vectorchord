@@ -88,3 +88,9 @@ SELECT * FROM pg_extension;
 You should see postgis and vector listed. 
 ### Data Persistence
 The PostgreSQL data is stored in the directory /var/lib/postgresql/data inside the container. It is highly recommended to use a named Docker volume (as shown in the examples) or a host
+
+## New Databases
+To enable all Extensions on new Databases you createt run:
+```bash
+docker exec -it <container-name> enable_extensions_all_db.sh
+```
