@@ -4,7 +4,7 @@
 
 This document describes how to use a pre-built Docker image based on `postgis:17-3.5`. It includes:
 
-* **PostgreSQL 17** (from the official Posrgis image)
+* **PostgreSQL 17** (from the official Postgis image)
 * **PostGIS** extension (3.5.4)
 * **pgvector-rs** extension (v0.4.0, official Debian Package)
 
