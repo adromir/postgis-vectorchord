@@ -1,15 +1,13 @@
 #!/bin/sh
-# Script to enable extensions in all user databases of a PostgreSQL instance
-# Prompts for username and password. Uses stty for password input compatibility.
+# Script to selectively enable extensions in user databases of a PostgreSQL instance
+# Lists databases with extension status, prompts for selection by number(s).
 
 set -e # Exits immediately if a command exits with a non-zero status.
 
 # --- Configuration ---
-# PG_USER="${PG_USER:-postgres}" # REMOVED - Will prompt user instead
 PG_HOST="${PG_HOST:-localhost}"
 PG_PORT="${PG_PORT:-5432}"
-
-# List of extensions to enable (space-separated)
+# List of extensions to manage (space-separated)
 EXTENSIONS_TO_ENABLE="postgis postgis_topology postgis_raster postgis_tiger_geocoder vectors"
 # --- End Configuration ---
 
@@ -22,88 +20,189 @@ while [ -z "$PG_USER_INPUT" ]; do
     echo "Username cannot be empty."
   fi
 done
-
-# Prompt for password securely using stty (more portable than read -s)
-echo -n "Enter password for user '$PG_USER_INPUT': " # -n prevents newline before input
-stty -echo # Disable terminal echo
-read PG_PASSWORD_INPUT # Read password
-stty echo # Enable terminal echo again
-echo # Add a newline after the password input for cleaner output
-# Export PGPASSWORD environment variable for psql commands to use automatically
+echo -n "Enter password for user '$PG_USER_INPUT': "
+stty -echo
+read PG_PASSWORD_INPUT
+stty echo
+echo
 export PGPASSWORD="$PG_PASSWORD_INPUT"
 # --- End Get Credentials ---
 
-
 # Create a comma-separated list for the search_path
-# Assumption: Extension name matches schema name (true for postgis*, vectors)
 SCHEMA_LIST=$(echo "$EXTENSIONS_TO_ENABLE" | tr ' ' ',')
 
 echo "Connecting as user '$PG_USER_INPUT' to host '$PG_HOST:$PG_PORT'..."
+echo "Fetching database list and checking extension status..."
 
-# Get the list of all databases that are not templates and are not named 'postgres'
-# Use the provided username
-DATABASES=$(psql -U "$PG_USER_INPUT" -h "$PG_HOST" -p "$PG_PORT" -d postgres -t -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('postgres');")
+# Get the list of all non-template databases (including 'postgres')
+# Use -A for unaligned output, easier parsing
+DATABASES_RAW=$(psql -U "$PG_USER_INPUT" -h "$PG_HOST" -p "$PG_PORT" -d postgres -t -A -c "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname;")
 
-# Check psql exit status after getting databases
+# Check psql exit status
 if [ $? -ne 0 ]; then
     echo "Error connecting to PostgreSQL or listing databases. Check credentials and connection parameters."
-    unset PGPASSWORD # Clear password variable
+    unset PGPASSWORD
     exit 1
 fi
 
-
-if [ -z "$DATABASES" ]; then
-    echo "No user databases found to process (excluding template*, postgres)."
-    # Unset PGPASSWORD before exiting
+if [ -z "$DATABASES_RAW" ]; then
+    echo "No non-template databases found."
     unset PGPASSWORD
     exit 0
 fi
 
-echo "The following databases will be processed:"
-echo "$DATABASES"
-echo "---"
+# --- Gather Status Info ---
+DB_COUNT=0
+# Use temporary files for storing lists (more robust for names with spaces than pure shell vars)
+TMP_DB_NAMES=$(mktemp)
+TMP_DB_STATUS=$(mktemp)
+# Ensure temp files are removed on exit, regardless of how the script exits
+# shellcheck disable=SC2064 # Variable is expanded correctly at trap definition time
+trap 'rm -f "$TMP_DB_NAMES" "$TMP_DB_STATUS"' EXIT
 
-# Loop through each database
-echo "$DATABASES" | while IFS= read -r DB; do
-    # Remove leading/trailing whitespace (sometimes added by psql)
-    DB=$(echo "$DB" | xargs)
-    if [ -z "$DB" ]; then
-        continue
+echo "$DATABASES_RAW" | while IFS= read -r DB; do
+    if [ -z "$DB" ]; then continue; fi # Skip empty lines
+
+    DB_COUNT=$((DB_COUNT + 1))
+    echo "$DB" >> "$TMP_DB_NAMES" # Store DB name in temp file
+    STATUS_LINE=""
+
+    # Get currently installed extensions in this DB
+    INSTALLED_EXTS=$(psql -U "$PG_USER_INPUT" -h "$PG_HOST" -p "$PG_PORT" -d "$DB" -t -A -c "SELECT extname FROM pg_extension;" 2>/dev/null || echo "ERROR_CHECKING")
+
+    if [ "$INSTALLED_EXTS" = "ERROR_CHECKING" ]; then
+        STATUS_LINE="Error checking status"
+    else
+        FIRST_EXT=1
+        for EXT in $EXTENSIONS_TO_ENABLE; do
+            if [ $FIRST_EXT -eq 0 ]; then STATUS_LINE="${STATUS_LINE}, "; fi
+            # Use grep -Fxq for exact, whole-line, quiet match (case sensitive)
+            if echo "$INSTALLED_EXTS" | grep -Fxq "$EXT"; then
+                STATUS_LINE="${STATUS_LINE}${EXT}=YES"
+            else
+                STATUS_LINE="${STATUS_LINE}${EXT}=NO"
+            fi
+            FIRST_EXT=0
+        done
+    fi
+     echo "$STATUS_LINE" >> "$TMP_DB_STATUS" # Store status line in temp file
+done
+
+# --- Display Numbered List ---
+echo "--------------------------------------------------"
+echo "Available Databases and Extension Status:"
+echo "--------------------------------------------------"
+CURRENT_LINE=1
+# Use paste to combine lines from the temp files
+paste -d'|' "$TMP_DB_NAMES" "$TMP_DB_STATUS" | while IFS='|' read -r DBNAME DBSTATUS; do
+     # Ensure DBNAME is not empty before printing
+     if [ -n "$DBNAME" ]; then
+          printf "[%2d] %-20s (Status: %s)\n" "$CURRENT_LINE" "$DBNAME" "$DBSTATUS"
+          CURRENT_LINE=$((CURRENT_LINE + 1))
+     fi
+done
+echo "--------------------------------------------------"
+
+# --- Prompt for Selection ---
+SELECTED_DBS_INDICES="" # Store indices (numbers)
+while true; do # Loop until valid input or cancel
+    read -p "Enter database number(s) to process (e.g., 1 or 1,3,4), or 'all', or leave empty to cancel: " SELECTION_INPUT
+
+    if [ -z "$SELECTION_INPUT" ]; then
+        echo "Operation cancelled."
+        unset PGPASSWORD
+        # trap will clean up temp files
+        exit 0
     fi
 
-    echo "Processing database: '$DB'"
-    echo "Enabling extensions: $EXTENSIONS_TO_ENABLE"
+    # Handle 'all' case
+    if echo "$SELECTION_INPUT" | grep -qiw "all"; then
+         SELECTED_DBS_INDICES=$(seq 1 $DB_COUNT)
+         echo "Selected all databases."
+         break # Exit selection loop
+    fi
 
-    # Build the SQL commands together
-    SQL_COMMANDS=""
-    for EXT in $EXTENSIONS_TO_ENABLE; do
-        SQL_COMMANDS="${SQL_COMMANDS}CREATE EXTENSION IF NOT EXISTS \"$EXT\";"
+    # Validate input: replace commas, check if numbers, check range
+    VALID_SELECTION=""
+    INVALID_FOUND=0
+    INPUT_NUMBERS=$(echo "$SELECTION_INPUT" | tr ',' ' ')
+
+    for NUM in $INPUT_NUMBERS; do
+        # Trim whitespace from NUM just in case
+        NUM=$(echo "$NUM" | xargs)
+        if [ -z "$NUM" ]; then continue; fi # Skip empty elements resulting from multiple commas etc.
+
+        # Check if it's a positive integer
+        if ! echo "$NUM" | grep -Eq '^[1-9][0-9]*$'; then
+            echo "Invalid input: '$NUM' is not a valid positive number."
+            INVALID_FOUND=1
+            continue # Skip to next number in input
+        fi
+        # Check if number is in range
+        if [ "$NUM" -gt "$DB_COUNT" ]; then
+            echo "Invalid input: Number '$NUM' is out of range (1-$DB_COUNT)."
+            INVALID_FOUND=1
+            continue # Skip to next number in input
+        fi
+        # Add valid number to list (space separated) - avoid duplicates
+        if ! echo " $VALID_SELECTION " | grep -q " $NUM "; then
+             VALID_SELECTION="${VALID_SELECTION}${NUM} "
+        fi
     done
-    # Add the command to set the search path
-    # Important: \$user must be escaped so it is interpreted by PostgreSQL, not the shell
-    SQL_COMMANDS="${SQL_COMMANDS}ALTER DATABASE \"$DB\" SET search_path = \"\\\$user\", public, ${SCHEMA_LIST};"
-    # Add commands for verification - Corrected SQL for PG16+
-    SQL_COMMANDS="${SQL_COMMANDS}SELECT extname FROM pg_extension;" # List extensions in current DB
-    SQL_COMMANDS="${SQL_COMMANDS}SELECT current_setting('search_path');"
 
-    # Execute the commands for the current database using the provided username
-    # PGPASSWORD environment variable is used automatically by psql
-    # Use -v ON_ERROR_STOP=1 instead of \set within --command
-    psql -U "$PG_USER_INPUT" -h "$PG_HOST" -p "$PG_PORT" -d "$DB" --quiet -v ON_ERROR_STOP=1 -c "${SQL_COMMANDS}"
-
-    # Check psql exit status for this database (optional, set -e handles it)
-    # if [ $? -ne 0 ]; then
-    #     echo "Error processing database '$DB'."
-    #     # Decide whether to continue or exit
-    # fi
-
-    echo "Database '$DB' processed successfully."
-    echo "---"
-
+    # Check if any valid numbers were entered and no invalid input was found
+    if [ $INVALID_FOUND -eq 0 ] && [ -n "$VALID_SELECTION" ]; then
+        SELECTED_DBS_INDICES=$(echo "$VALID_SELECTION" | xargs) # Trim whitespace
+        echo "Selected database numbers: $SELECTED_DBS_INDICES"
+        break # Exit selection loop
+    else
+        echo "Invalid input detected. Please try again or leave empty to cancel."
+        # Loop continues to ask for input again
+    fi
 done
+
+# --- Process Selected Databases ---
+echo "---"
+echo "Processing selected databases..."
+PROCESSED_COUNT=0
+if [ -z "$SELECTED_DBS_INDICES" ]; then
+    echo "No valid database numbers were selected."
+else
+    for NUM in $SELECTED_DBS_INDICES; do
+        # Get the DB name for the selected number using sed on the temp file
+        DB=$(sed -n "${NUM}p" "$TMP_DB_NAMES")
+
+        if [ -z "$DB" ]; then
+             echo "Warning: Could not retrieve database name for index $NUM. Skipping."
+             continue
+        fi
+
+        echo "Processing database: '$DB' (Number $NUM)"
+        PROCESSED_COUNT=$((PROCESSED_COUNT + 1))
+
+        # Build the SQL commands together
+        SQL_COMMANDS=""
+        for EXT in $EXTENSIONS_TO_ENABLE; do
+            SQL_COMMANDS="${SQL_COMMANDS}CREATE EXTENSION IF NOT EXISTS \"$EXT\";"
+        done
+        SQL_COMMANDS="${SQL_COMMANDS}ALTER DATABASE \"$DB\" SET search_path = \"\\\$user\", public, ${SCHEMA_LIST};"
+        SQL_COMMANDS="${SQL_COMMANDS}SELECT extname FROM pg_extension;" # Verification
+        SQL_COMMANDS="${SQL_COMMANDS}SELECT current_setting('search_path');" # Verification
+
+        # Execute the commands
+        psql -U "$PG_USER_INPUT" -h "$PG_HOST" -p "$PG_PORT" -d "$DB" --quiet -v ON_ERROR_STOP=1 -c "${SQL_COMMANDS}"
+        echo "Database '$DB' processed successfully."
+        echo "---"
+    done
+fi
 
 # Unset PGPASSWORD after use for security
 unset PGPASSWORD
 
-echo "Extension enabling process completed."
+if [ $PROCESSED_COUNT -eq 0 ]; then
+    echo "No databases were selected or processed."
+else
+    echo "Finished processing $PROCESSED_COUNT selected database(s)."
+fi
+echo "Script finished."
 
