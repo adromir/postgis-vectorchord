@@ -34,11 +34,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Set up QEMU for multi-platform builds (e.g., arm64 on amd64 runner)
+      # Set up QEMU is no longer strictly necessary for a single platform build,
+      # but it doesn't hurt to leave it for future compatibility.
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # Set up Docker Buildx for building multi-platform images
+      # Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -73,21 +74,20 @@ jobs:
             # Enabled only for pushes/schedules on the default branch.
 
             # Architecture-specific tag
-            type=raw,value=postgres17-postgis3.5-vectorchord0.4.2-latest-{{arch}},enable={{is_default_branch}}
+            type=raw,value=postgres17-postgis3.4-vectorchord0.4.2-latest-{{arch}},enable={{is_default_branch}}
             
-            # Multi-arch manifest tag (points to the list of arch-specific images)
-            type=raw,value=postgres17-postgis3.5-vectorchord0.4.2-latest,enable={{is_default_branch}}
+            # Since we only build for one architecture, this tag will point to the amd64 image.
+            type=raw,value=postgres17-postgis3.4-vectorchord0.4.2-latest,enable={{is_default_branch}}
             # --- END: Specific Versioned Tagging Strategy ---
 
       # Build and push Docker image
       # This step uses the Dockerfile in your repository root
-      # It builds for linux/amd64 and linux/arm64
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: . # Build context is the root of the repository
           file: ./Dockerfile # Path to your Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64 # CHANGED: Removed linux/arm64
           push: true # Actually push the image
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
