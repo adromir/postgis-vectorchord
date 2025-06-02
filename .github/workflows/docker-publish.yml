@@ -60,7 +60,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Extract metadata (tags, labels) for Docker
-      # This will generate tags like 'latest', branch name, SHA, etc.
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -69,14 +68,16 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/postgis-vectorchord 
             ghcr.io/${{ github.repository_owner }}/postgis-vectorchord
           tags: |
-            type=schedule,pattern=latest,enable={{is_default_branch}}
-            type=ref,event=branch,enable={{is_default_branch}}
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=,suffix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            # --- START: Specific Versioned Tagging Strategy ---
+            # Format: postgres<PG_VER>-postgis<POSTGIS_VER>-vectorchord<VC_VER>-latest-<ARCH>
+            # Enabled only for pushes/schedules on the default branch.
 
+            # Architecture-specific tag
+            type=raw,value=postgres17-postgis3.5-vectorchord0.4.2-latest-{{arch}},enable={{is_default_branch}}
+            
+            # Multi-arch manifest tag (points to the list of arch-specific images)
+            type=raw,value=postgres17-postgis3.5-vectorchord0.4.2-latest,enable={{is_default_branch}}
+            # --- END: Specific Versioned Tagging Strategy ---
 
       # Build and push Docker image
       # This step uses the Dockerfile in your repository root
@@ -92,4 +93,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-

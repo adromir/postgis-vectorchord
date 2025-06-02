@@ -3,7 +3,7 @@
 # Based on the official Debian-based PostGIS image
 # Installs 'VectorChord' v0.4.2 from a pre-compiled .deb package from the official repository
 #
-FROM postgis/postgis:17-3.4 AS final
+FROM postgis/postgis:17-3.5 AS final
 
 # --- Configuration for VectorChord ---
 # Version 0.4.2 and the correct repository are used.
