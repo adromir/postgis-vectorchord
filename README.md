@@ -1,7 +1,6 @@
 # PostgreSQL + PostGIS + VectorChord Docker Image
 
 [![Docker Image CI](https://github.com/adromir/postgis-vectorchord/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/adromir/postgis-vectorchord/actions/workflows/docker-publish.yml)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/adromir/postgis-vectorchord)](https://github.com/adromir/postgis-vectorchord/releases/latest)
 [![Docker Pulls](https://img.shields.io/docker/pulls/adromir/postgis-vectorchord.svg)](https://hub.docker.com/r/adromir/postgis-vectorchord)
 [![Docker Image Size (latest)](https://img.shields.io/docker/image-size/adromir/postgis-vectorchord/latest)](https://hub.docker.com/r/adromir/postgis-vectorchord)
 [![GitHub Stars](https://img.shields.io/github/stars/adromir/postgis-vectorchord.svg?style=social&label=Star)](https://github.com/adromir/postgis-vectorchord/stargazers/)
