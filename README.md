@@ -10,15 +10,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ![PostgreSQL Version](https://img.shields.io/badge/PostgreSQL-17-blue.svg)
-![PostGIS Version](https://img.shields.io/badge/PostGIS-3.4-green.svg)
+![PostGIS Version](https://img.shields.io/badge/PostGIS-3.5-green.svg)
 ![VectorChord Version](https://img.shields.io/badge/VectorChord-0.4.2-orange.svg)
 
 ## Overview
 
-This document describes how to use a pre-built Docker image based on `postgis/postgis:17-3.4`. It includes:
+This document describes how to use a pre-built Docker image based on `postgis/postgis:17-3.5`. It includes:
 
 * **PostgreSQL 17** (from the official PostGIS image)
-* **PostGIS** extension (3.4.x, corresponding to the base image)
+* **PostGIS** extension (3.5.x, corresponding to the base image)
 * **VectorChord** extension (v0.4.2, official Debian Package)
 
 The pre-built image is available on:
@@ -30,14 +30,13 @@ The `postgis` and `vchord` (VectorChord) extensions are automatically enabled in
 ## Features
 
 * PostgreSQL 17
-* PostGIS 3.4.x extension included
+* PostGIS 3.5.x extension included
 * VectorChord extension v0.4.2 included
 * Automatic enabling of `postgis` and `vchord` extensions on initialization
 * Configurable user, password, and database name via environment variables
 * Standard PostgreSQL port `5432` exposed
 * Data persistence via Docker volumes
-* Multi-arch support (linux/amd64, linux/arm64)
-* Automated builds and updates via GitHub Actions
+
 
 ## Prerequisites
 
