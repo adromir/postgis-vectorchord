@@ -1,6 +1,9 @@
 -- Enable PostGIS extension if it doesn't exist (safe check)
 CREATE EXTENSION IF NOT EXISTS postgis;
 
+-- Enable pgvector extension (required for vchord)
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- Enable vchord extension if it doesn't exist
 CREATE EXTENSION IF NOT EXISTS vchord;
 
