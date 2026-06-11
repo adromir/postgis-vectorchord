@@ -1,4 +1,4 @@
-FROM postgres:17-bookworm
+FROM postgres:17-trixie
 
 # Install dependencies, PostGIS, pgvector, and cron
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	postgresql-17-pgvector \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Install VectorChord 1.0.0 from .deb
-ARG VECTORCHORD_VERSION=1.0.0
+# Install VectorChord 1.1.1 from .deb
+ARG VECTORCHORD_VERSION=1.1.1
 # URL pattern: https://github.com/tensorchord/VectorChord/releases/download/1.0.0/postgresql-17-vchord_1.0.0-1_amd64.deb
 
 RUN curl -fL "https://github.com/tensorchord/VectorChord/releases/download/${VECTORCHORD_VERSION}/postgresql-17-vchord_${VECTORCHORD_VERSION}-1_amd64.deb" -o /tmp/vectorchord.deb \
