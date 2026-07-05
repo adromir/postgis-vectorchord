@@ -28,5 +28,30 @@ if [ -n "$BACKUP_SCHEDULE" ]; then
     echo "Cron service started."
 fi
 
+# Update shared_preload_libraries in existing postgresql.conf to include vchord and vectors
+DATA_DIR="${PGDATA:-/var/lib/postgresql/data}"
+if [ -f "$DATA_DIR/postgresql.conf" ]; then
+    echo "Checking shared_preload_libraries in $DATA_DIR/postgresql.conf..."
+    if grep -qE "^[[:space:]]*shared_preload_libraries[[:space:]]*=[[:space:]]*'vchord,[[:space:]]*vectors'" "$DATA_DIR/postgresql.conf"; then
+        echo "shared_preload_libraries is already correctly set in postgresql.conf."
+    else
+        if grep -qE "^[[:space:]]*#?[[:space:]]*shared_preload_libraries[[:space:]]*=" "$DATA_DIR/postgresql.conf"; then
+            echo "Updating existing shared_preload_libraries setting in postgresql.conf..."
+            sed -i -E "s/^[[:space:]]*#?[[:space:]]*shared_preload_libraries[[:space:]]*=[[:space:]]*.*/shared_preload_libraries = 'vchord, vectors'/g" "$DATA_DIR/postgresql.conf"
+        else
+            echo "Appending shared_preload_libraries setting to postgresql.conf..."
+            echo "shared_preload_libraries = 'vchord, vectors'" >> "$DATA_DIR/postgresql.conf"
+        fi
+    fi
+fi
+
+if [ -f "$DATA_DIR/postgresql.auto.conf" ]; then
+    echo "Checking shared_preload_libraries in $DATA_DIR/postgresql.auto.conf..."
+    if grep -q "shared_preload_libraries" "$DATA_DIR/postgresql.auto.conf"; then
+        echo "Updating shared_preload_libraries setting in postgresql.auto.conf..."
+        sed -i -E "s/^[[:space:]]*shared_preload_libraries[[:space:]]*=[[:space:]]*.*/shared_preload_libraries = 'vchord, vectors'/g" "$DATA_DIR/postgresql.auto.conf"
+    fi
+fi
+
 # Run the original entrypoint
 exec docker-entrypoint.sh "$@"
