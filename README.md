@@ -1,13 +1,14 @@
-# 🐘 Postgres 17 + 🌍 PostGIS + 🎹 VectorChord
+# 🐘 Postgres 17 + 🌍 PostGIS + 🎹 VectorChord & pgvecto.rs
 
-This Docker image provides a robust PostgreSQL 17 environment equipped with PostGIS and VectorChord (via pgvector) for advanced spatial and vector similarity search capabilities. It is built on the official `postgres:17-bookworm` image.
+This Docker image provides a robust PostgreSQL 17 environment equipped with PostGIS, VectorChord, and pgvecto.rs for advanced spatial and vector similarity search capabilities. It is built on the official `postgres:17-trixie` image.
 
 ## ✨ Features
 
-- **🐘 PostgreSQL 17**: Latest stable version on Debian Bookworm.
+- **🐘 PostgreSQL 17**: Latest stable version on Debian Trixie.
 - **🌍 PostGIS 3**: Spatial database extender.
 - **🔍 pgvector**: Open-source vector similarity search.
-- **🎹 VectorChord**: High-performance vector search extension (v1.0.0).
+- **🎹 VectorChord**: High-performance vector search extension (v1.1.1).
+- **⚡ pgvecto.rs**: Vector search extension (v0.4.0), pre-installed to support legacy migrations (e.g. older Immich databases using the `vectors` extension).
 - **⏰ Automated Backups**: Built-in cron scheduler for periodic backups.
 - **🛠️ Backup & Restore Tools**: Scripts for manual backup and restore operations.
 

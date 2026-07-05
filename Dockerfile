@@ -18,8 +18,14 @@ RUN curl -fL "https://github.com/tensorchord/VectorChord/releases/download/${VEC
 	&& apt-get install -y /tmp/vectorchord.deb \
 	&& rm /tmp/vectorchord.deb
 
+# Install pgvecto.rs 0.4.0 from .deb (needed for database migrations that use pgvecto.rs)
+ARG PGVECTO_RS_VERSION=0.4.0
+RUN curl -fL "https://github.com/tensorchord/pgvecto.rs/releases/download/v${PGVECTO_RS_VERSION}/vectors-pg17_${PGVECTO_RS_VERSION}_amd64.deb" -o /tmp/pgvecto-rs.deb \
+	&& apt-get install -y /tmp/pgvecto-rs.deb \
+	&& rm /tmp/pgvecto-rs.deb
+
 # Configure shared_preload_libraries
-RUN echo "shared_preload_libraries = 'vchord'" >> /usr/share/postgresql/postgresql.conf.sample
+RUN echo "shared_preload_libraries = 'vchord, vectors'" >> /usr/share/postgresql/postgresql.conf.sample
 
 # Copy initialization scripts
 COPY init-extensions.sql /docker-entrypoint-initdb.d/

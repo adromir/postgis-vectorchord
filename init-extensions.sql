@@ -7,7 +7,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Enable vchord extension if it doesn't exist
 CREATE EXTENSION IF NOT EXISTS vchord;
 
--- Add vchord schema to search path for the current user (role)
+-- Enable vectors extension if it doesn't exist (needed for pgvecto.rs compatibility)
+CREATE EXTENSION IF NOT EXISTS vectors;
+
+-- Add vchord and vectors schemas to search path for the current user (role)
 -- This ensures functions are found without schema qualification
 -- The entrypoint script runs this as the user defined by POSTGRES_USER
-ALTER ROLE current_user SET search_path TO "$user", public, vchord;
+ALTER ROLE current_user SET search_path TO "$user", public, vchord, vectors;
